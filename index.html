@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StatQuiz: turn any chapter into a quiz</title>
+<style>
+:root{--bg:#f4f1e8;--ink:#1b2a2f;--mut:#58696b;--card:#fffdf7;--line:#d9d3c0;--acc:#0b6e63;--acc2:#dcefe9;--hi:#f2c14e;--bad:#b3392f;--bad2:#fbe9e5;--ok:#1d7a45;--ok2:#e2f3e8}
+@media (prefers-color-scheme:dark){:root{--bg:#121d20;--ink:#eae7dc;--mut:#9fb0b0;--card:#1a2a2e;--line:#30464b;--acc:#52c7b5;--acc2:#1c3a38;--hi:#e0b040;--bad:#ff8a7d;--bad2:#3a2220;--ok:#6fd49a;--ok2:#193726}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 Georgia,"Times New Roman",serif}
+a{color:var(--acc)}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+nav{max-width:900px;margin:0 auto;padding:10px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px}
+.logo{font-weight:bold;font-size:1.3rem;margin-right:auto;text-decoration:none;color:var(--ink)}
+nav a.l{text-decoration:none;color:var(--mut);padding:4px 2px;border-bottom:3px solid transparent}
+nav a.l[aria-current=page]{color:var(--ink);border-color:var(--hi)}
+main{max-width:900px;margin:0 auto;padding:28px 18px 70px}
+h1{font-size:clamp(2rem,6vw,3.1rem);line-height:1.12;margin:.1em 0 .3em}
+h2{font-size:1.5rem;margin:1.2em 0 .4em}h3{font-size:1.1rem;margin:0 0 .3em}
+.lead{font-size:1.2rem;color:var(--mut);max-width:34em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:18px;margin:14px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.grid .card{margin:0}
+.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:28px;align-items:center}
+@media(max-width:720px){.hero{grid-template-columns:1fr}}
+.btn,button{display:inline-block;background:var(--acc);color:#fff;border:0;border-radius:6px;padding:11px 18px;font:inherit;font-weight:bold;cursor:pointer;margin:10px 8px 0 0;text-decoration:none}
+.btn.alt,button.alt{background:transparent;color:var(--ink);border:2px solid var(--line)}
+button:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+.demo{border:2px solid var(--ink);box-shadow:6px 6px 0 var(--hi)}
+.opt{display:block;width:100%;text-align:left;background:var(--bg);color:var(--ink);border:1px solid var(--line);margin:6px 0;font-weight:normal}
+.opt.sel{border-color:var(--acc);background:var(--acc2)}
+.opt.ok{background:var(--ok2);border-color:var(--ok)}.opt.no{background:var(--bad2);border-color:var(--bad)}
+.steps{list-style:none;padding:0;counter-reset:s}
+.steps li{counter-increment:s;position:relative;padding:14px 14px 14px 58px;margin:10px 0;background:var(--card);border:1px solid var(--line);border-radius:6px}
+.steps li::before{content:counter(s);position:absolute;left:14px;top:12px;width:30px;height:30px;border-radius:50%;background:var(--hi);color:#1b2a2f;font-weight:bold;text-align:center;line-height:30px}
+.tip{background:var(--acc2);border-left:5px solid var(--acc);padding:10px 14px;border-radius:4px;margin:14px 0}
+details{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0}
+summary{cursor:pointer;font-weight:bold}
+label{display:block;font-weight:bold;margin:14px 0 4px}
+input,textarea,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:180px}
+.row{display:flex;gap:12px;flex-wrap:wrap}.row>div{flex:1;min-width:180px}
+.hide{display:none}.msg{color:var(--mut)}.err{color:var(--bad);font-weight:bold}
+small{color:var(--mut)}
+.right{background:var(--ok2);border-left:4px solid var(--ok);padding:8px 12px;margin:8px 0;border-radius:4px}
+.wrong{background:var(--bad2);border-left:4px solid var(--bad);padding:8px 12px;margin:8px 0;border-radius:4px}
+.bar{height:12px;background:var(--acc2);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--bad)}
+.prog{height:8px;background:var(--acc2);border-radius:4px;margin-bottom:12px}.prog i{display:block;height:100%;background:var(--acc);border-radius:4px;transition:width .3s}
+footer{text-align:center;color:var(--mut);padding:20px;font-size:.9rem}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header><nav aria-label="Main">
+  <a class="logo" href="#home">StatQuiz</a>
+  <a class="l" href="#home">Home</a>
+  <a class="l" href="#how">How it works</a>
+  <a class="l" href="#key">Get your free key</a>
+  <a class="l" href="#try">Try it</a>
+  <a class="l" href="#about">About</a>
+  <a class="l hide" id="navHist" href="#history">My history</a>
+  <a class="l" id="navAcc" href="#account">Sign in</a>
+</nav></header>
+
+<main>
+<!-- HOME -->
+<section class="view" id="v-home">
+  <div class="hero">
+    <div>
+      <h1>Turn any chapter into a quiz. Find out what to revise.</h1>
+      <p class="lead">Paste your study material and StatQuiz writes multiple-choice questions from it. When you answer, it shows which topics need more work.</p>
+      <a class="btn" href="#try">Make my quiz</a><a class="btn alt" href="#how">See how it works</a>
+    </div>
+    <div class="card demo" aria-live="polite">
+      <small>Try a sample question</small>
+      <h3 style="margin-top:6px">Which measure of the centre is least affected by extreme values?</h3>
+      <div id="demoOpts"></div>
+      <p id="demoFb" class="msg"></p>
+    </div>
+  </div>
+  <h2>What you get</h2>
+  <div class="grid">
+    <div class="card"><h3>Questions from your own material</h3><p>Every question comes with four options, the right answer and the sentence it was based on.</p></div>
+    <div class="card"><h3>A study plan after each quiz</h3><p>Weak topics are ranked by how many answers you got wrong, with the passage to reread.</p></div>
+    <div class="card"><h3>Proof it works</h3><p>Switch to a simple template generator and compare. Download questions as a CSV for human review.</p></div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="view hide" id="v-how">
+  <h1>How it works</h1>
+  <p class="lead">Four steps, about two minutes.</p>
+  <ol class="steps">
+    <li><h3>Add your material</h3>Paste text or upload a .txt file. A chapter or article of 500 to 3000 words works best.</li>
+    <li><h3>Choose a generator</h3>The AI generator writes the questions with Gemini. The template baseline fills in blanks from your sentences without AI, so you can compare the two.</li>
+    <li><h3>Take the quiz</h3>Answer one question at a time. Nothing is graded until the end.</li>
+    <li><h3>Read your study plan</h3>You see your score, the topics you missed most, and the exact passages to revisit.</li>
+  </ol>
+  <a class="btn" href="#key">First, get your free key</a>
+</section>
+
+<!-- KEY -->
+<section class="view hide" id="v-key">
+  <h1>Get your free Gemini key</h1>
+  <p class="lead">The AI generator needs a key from Google. It is free, needs no card, and takes about a minute.</p>
+  <ol class="steps">
+    <li><h3>Open Google AI Studio</h3><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> and sign in with any Google account.</li>
+    <li><h3>Click "Create API key"</h3>If it asks you to pick a project, choose the default or create a new one.</li>
+    <li><h3>Copy the key</h3>It starts with <b>AIza</b>. Use the copy button next to it.</li>
+    <li><h3>Paste it on the Try it page</h3>The key stays in your browser. It is never sent anywhere except to Google.</li>
+  </ol>
+  <a class="btn" href="#try">Go to Try it</a>
+  <h2>Questions</h2>
+  <details><summary>Is it really free?</summary><p>Google offers a free tier with daily limits. Limits change, so check the AI Studio page. If you hit the limit, wait a few hours.</p></details>
+  <details><summary>Is my key safe?</summary><p>It is stored only in your own browser. Don't share it or post it online.</p></details>
+  <details><summary>I can't get a key. Can I still use the site?</summary><p>Yes. Choose the template baseline on the Try it page. It needs no key.</p></details>
+</section>
+
+<!-- TRY -->
+<section class="view hide" id="v-try">
+  <h1>Try it</h1>
+  <section class="card" id="setup">
+    <div class="tip">No key yet? <a href="#key">Get one free in a minute.</a></div>
+    <label for="key">Gemini API key</label>
+    <input id="key" type="password" placeholder="Starts with AIza" autocomplete="off">
+    <label for="file">Upload a .txt file, or paste text</label>
+    <input id="file" type="file" accept=".txt,.md">
+    <label for="text">Learning material <small id="wc">0 words</small></label>
+    <textarea id="text" placeholder="Paste a chapter or article here (500 to 3000 words works best)"></textarea>
+    <button class="alt" id="sample" type="button">Use sample text</button>
+    <div class="row">
+      <div><label for="mode">Question generator</label>
+      <select id="mode"><option value="ai">AI generator (Gemini)</option><option value="base">Template baseline (no AI)</option></select></div>
+      <div><label for="n">Questions</label><select id="n"><option>5</option><option selected>10</option><option>15</option></select></div>
+    </div>
+    <button id="go">Generate quiz</button>
+    <p id="status" class="msg" role="status"></p>
+  </section>
+
+  <section class="card hide" id="quiz">
+    <div class="prog"><i id="pbar"></i></div>
+    <h2 id="qhead"></h2><p id="qtext"></p><div id="opts"></div>
+    <button id="next" disabled>Next</button>
+  </section>
+
+  <section class="card hide" id="result">
+    <h2 id="score"></h2>
+    <p id="saveNote" class="msg" role="status"></p>
+    <h2>What to study next</h2><div id="rec"></div>
+    <h2>Review</h2><div id="review"></div>
+    <button id="dl" class="alt">Download questions (CSV)</button>
+    <button id="again" class="alt">Start over</button>
+  </section>
+</section>
+
+<!-- ACCOUNT -->
+<section class="view hide" id="v-account">
+  <h1>Your account</h1>
+  <p id="noDb" class="tip hide">Accounts are not connected yet. The site owner needs to add the database keys. You can still make quizzes as a guest.</p>
+  <div class="card" id="authForm">
+    <label for="em">Email</label><input id="em" type="email" autocomplete="email">
+    <label for="pw">Password (at least 6 characters)</label><input id="pw" type="password" autocomplete="current-password">
+    <button id="signin">Sign in</button><button id="signup" class="alt">Create account</button>
+  </div>
+  <div class="card hide" id="authIn">
+    <p>Signed in as <b id="who"></b>. Your quizzes are saved automatically.</p>
+    <a class="btn" href="#history">My history</a><button id="signout" class="alt">Sign out</button>
+  </div>
+  <p id="authMsg" class="msg" role="status"></p>
+</section>
+
+<!-- HISTORY -->
+<section class="view hide" id="v-history">
+  <h1>My history</h1>
+  <p class="lead">Every quiz you finish while signed in is saved here. Open one to review your answers.</p>
+  <div id="histList"></div>
+</section>
+
+<!-- ABOUT -->
+<section class="view hide" id="v-about">
+  <h1>About this project</h1>
+  <p class="lead">Built for Smart India Hackathon 2026, problem statement SIH26101 (MoSPI): an AI learning tool that generates quizzes from uploaded material and recommends what to study.</p>
+  <div class="grid">
+    <div class="card"><h3>Generator</h3><p>Gemini writes questions only from your text, with plausible wrong options and a source sentence.</p></div>
+    <div class="card"><h3>Recommender</h3><p>Every question has a topic tag. Wrong answers are counted per topic to find weak areas.</p></div>
+    <div class="card"><h3>Baseline</h3><p>A rule-based template generator, used to measure how much better the AI questions are.</p></div>
+  </div>
+  <h2>What we measure</h2>
+  <p>Question validity rate, distractor plausibility rate and recommendation precision, judged by human reviewers using the downloaded CSV.</p>
+  <h2>Privacy</h2>
+  <p>This site has no server. Your text goes only to Google's Gemini API when you use the AI generator, and your key stays in your browser.</p>
+</section>
+</main>
+<footer>StatQuiz, a student project</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let Q = [], A = [], i = 0;
+
+/* ---------- accounts and history (Supabase) ---------- */
+const SUPABASE_URL = "https://axffmvobctrjfxbggojd.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Aj9HpzNACmRtuRgScFnFAg_HqkdkCwb";
+let sb = null, user = null;
+try { if(!SUPABASE_URL.startsWith("PASTE") && window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e){}
+function paintAuth(){
+  $("authForm").classList.toggle("hide", !!user); $("authIn").classList.toggle("hide", !user);
+  $("who").textContent = user ? user.email : "";
+  $("navAcc").textContent = user ? "Account" : "Sign in";
+  $("navHist").classList.toggle("hide", !user);
+  $("noDb").classList.toggle("hide", !!sb);
+  if(location.hash==="#history") loadHistory();
+}
+if(sb){
+  sb.auth.getSession().then(({data})=>{ user = data.session?.user || null; paintAuth(); });
+  sb.auth.onAuthStateChange((_e,s)=>{ user = s?.user || null; paintAuth(); });
+} else paintAuth();
+function authMsg(m,bad){ $("authMsg").textContent=m; $("authMsg").className=bad?"err":"msg"; }
+$("signin").onclick = async () => {
+  if(!sb) return authMsg("Database not connected yet.", true);
+  const {error} = await sb.auth.signInWithPassword({email:$("em").value.trim(), password:$("pw").value});
+  authMsg(error ? error.message : "Signed in.", !!error); if(!error) location.hash = "#try";
+};
+$("signup").onclick = async () => {
+  if(!sb) return authMsg("Database not connected yet.", true);
+  const {data,error} = await sb.auth.signUp({email:$("em").value.trim(), password:$("pw").value});
+  if(error) return authMsg(error.message, true);
+  if(!data.session) authMsg("Account created. Check your email to confirm it, then sign in.");
+  else { authMsg("Account created."); location.hash = "#try"; }
+};
+$("signout").onclick = async () => { await sb.auth.signOut(); authMsg(""); location.hash = "#home"; };
+async function saveAttempt(right){
+  if(!sb || !user){ $("saveNote").innerHTML = '<a href="#account">Sign in</a> to save this quiz to your history.'; return; }
+  const title = $("text").value.trim().split(/\s+/).slice(0,7).join(" ") + "...";
+  $("saveNote").textContent = "Saving...";
+  const {error} = await sb.from("quiz_attempts").insert({title, mode:$("mode").value, score:right, total:Q.length, questions:Q, answers:A});
+  $("saveNote").textContent = error ? "Could not save: "+error.message : "Saved to your history.";
+}
+async function loadHistory(){
+  const box = $("histList");
+  if(!sb || !user){ box.innerHTML = '<p><a href="#account">Sign in</a> to see your history.</p>'; return; }
+  box.textContent = "Loading...";
+  const {data,error} = await sb.from("quiz_attempts").select("*").order("created_at",{ascending:false}).limit(50);
+  if(error){ box.textContent = "Error: "+error.message; return; }
+  if(!data.length){ box.innerHTML = '<p>No quizzes yet. <a href="#try">Make your first one.</a></p>'; return; }
+  box.innerHTML = "";
+  data.forEach(r=>{
+    let inner = "";
+    r.questions.forEach((q,k)=>{ const ok = r.answers[k]===q.answer;
+      inner += `<div class="${ok?"right":"wrong"}"><b>${k+1}. ${esc(q.question)}</b><br>Your answer: ${esc(q.options[r.answers[k]])}${ok?"":`<br>Correct: ${esc(q.options[q.answer])}`}</div>`; });
+    const d = document.createElement("details");
+    d.innerHTML = `<summary>${esc(r.title)}: ${r.score} of ${r.total} <small>${esc(new Date(r.created_at).toLocaleString())}, ${r.mode==="ai"?"AI":"baseline"}</small></summary>${inner}`;
+    box.appendChild(d);
+  });
+}
+
+/* ---------- navigation ---------- */
+const views = ["home","how","key","try","about","account","history"];
+function route(){
+  const h = location.hash.slice(1); const v = views.includes(h) ? h : "home";
+  views.forEach(n => $("v-"+n).classList.toggle("hide", n!==v));
+  document.querySelectorAll("nav a.l").forEach(a => a.getAttribute("href")==="#"+v ? a.setAttribute("aria-current","page") : a.removeAttribute("aria-current"));
+  if(v==="history") loadHistory();
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange", route); route();
+
+/* ---------- home demo question ---------- */
+["Mean","Median","Range","Variance"].forEach(o=>{
+  const b = document.createElement("button"); b.className="opt"; b.textContent=o;
+  b.onclick = () => {
+    [...$("demoOpts").children].forEach(c=>{c.disabled=true; if(c.textContent==="Median")c.classList.add("ok");});
+    if(o!=="Median") b.classList.add("no");
+    $("demoFb").textContent = o==="Median" ? "Correct. One very large value can drag the mean up, but the median stays put. Real quizzes also tell you which topic to revise." : "Not quite. The median is the middle value, so extreme values barely move it. Real quizzes show you which topics to revise.";
+  };
+  $("demoOpts").appendChild(b);
+});
+
+/* ---------- inputs ---------- */
+const SAMPLE = "The mean of a data set is the sum of all values divided by the number of values. It is sensitive to extreme values, so a single very large number can pull the mean upward. The median is the middle value when the data are arranged in order, and it is less affected by outliers. The mode is the value that occurs most often in a data set. The range is the difference between the largest and smallest values, and it describes how spread out the data are. The variance measures the average squared distance of each value from the mean. The standard deviation is the square root of the variance and is expressed in the same units as the original data. A small standard deviation means the values are clustered close to the mean, while a large one means they are widely spread. In sampling, a population is the complete group being studied, and a sample is a smaller part selected from it. A random sample gives every member of the population an equal chance of being chosen, which helps to reduce bias. The Ministry of Statistics collects data through large national surveys and the census to describe the economy and the population of India.";
+function wc(){ const n = $("text").value.trim().split(/\s+/).filter(Boolean).length; $("wc").textContent = n+" words"; }
+$("text").oninput = wc;
+$("sample").onclick = () => { $("text").value = SAMPLE; wc(); };
+$("file").onchange = e => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{$("text").value=r.result;wc();}; r.readAsText(f); };
+try { $("key").value = localStorage.getItem("gkey") || ""; } catch(e){}
+function setStatus(m,bad){ $("status").textContent=m; $("status").className=bad?"err":"msg"; }
+function shuffle(a){ for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]];} return a; }
+function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+/* ---------- AI generator ---------- */
+async function aiGenerate(text,n,key){
+  const prompt = `You write multiple-choice questions strictly from the material below.
+Return ONLY a JSON array of ${n} objects. Each object: {"question":string,"options":[4 strings],"answer":0-3 index of the correct option,"topic":short topic name (2-4 words),"source":exact sentence from material that proves the answer}.
+Rules: exactly one correct option; the 3 wrong options must be plausible and of similar length; no "all of the above"; answerable only from the material.
+
+MATERIAL:
+${text.slice(0,24000)}`;
+  const models = ["gemini-3.8-flash","gemini-3.5-flash","gemini-3.5-flash-lite","gemini-2.5-flash-lite"];
+  let lastErr = "";
+  for (const m of models){
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json",temperature:0.4}})
+    });
+    const data = await res.json();
+    if(!res.ok){ lastErr = data.error?.message || res.statusText; continue; }
+    let t = (data.candidates?.[0]?.content?.parts||[]).map(p=>p.text).join("").replace(/```json|```/g,"").trim();
+    return JSON.parse(t).filter(q=>q.question&&Array.isArray(q.options)&&q.options.length===4&&Number.isInteger(q.answer));
+  }
+  throw new Error(lastErr || "Could not reach Gemini");
+}
+
+/* ---------- template baseline ---------- */
+function baseline(text,n){
+  const stop = new Set("the a an of and or to in is are was were be by for with as on at that this which from it its their also can may such these those have has had not but than then into more most other used use using called based".split(" "));
+  const sents = text.replace(/\s+/g," ").split(/(?<=[.!?])\s+/).filter(s=>{const w=s.split(" ").length;return w>=8&&w<=35;});
+  const words = [...new Set((text.toLowerCase().match(/[a-z][a-z-]{5,}/g)||[]).filter(w=>!stop.has(w)))];
+  const out = [];
+  for (const s of shuffle(sents.slice())){
+    const cands = (s.match(/[A-Za-z][A-Za-z-]{5,}/g)||[]).filter(w=>!stop.has(w.toLowerCase()));
+    if(!cands.length) continue;
+    const key = cands.sort((a,b)=>b.length-a.length)[0];
+    const wrong = shuffle(words.filter(w=>w!==key.toLowerCase())).slice(0,3);
+    if(wrong.length<3) continue;
+    const opts = shuffle([key.toLowerCase(),...wrong]);
+    out.push({question:"Fill in the blank: "+s.replace(key,"_____"),options:opts,answer:opts.indexOf(key.toLowerCase()),topic:"General",source:s});
+    if(out.length>=n) break;
+  }
+  return out;
+}
+
+$("go").onclick = async () => {
+  const text=$("text").value.trim(), n=+$("n").value, mode=$("mode").value, key=$("key").value.trim();
+  if(text.split(/\s+/).length<100) return setStatus("Add at least 100 words of material, or press Use sample text.",true);
+  if(mode==="ai" && !key) return setStatus("Paste your free Gemini key first. See the Get your free key page.",true);
+  $("go").disabled=true; setStatus(mode==="ai"?"Generating questions. This takes 10 to 30 seconds.":"Building baseline questions.");
+  try{
+    if(mode==="ai"){ try{localStorage.setItem("gkey",key);}catch(e){} Q=await aiGenerate(text,n,key); } else Q=baseline(text,n);
+    if(!Q.length) throw new Error("No valid questions came back. Try again or use a longer text.");
+    A=[]; i=0; setStatus("");
+    $("setup").classList.add("hide"); $("result").classList.add("hide"); $("quiz").classList.remove("hide"); show();
+  }catch(e){ setStatus("Error: "+e.message,true); }
+  $("go").disabled=false;
+};
+
+function show(){
+  const q=Q[i]; $("qhead").textContent=`Question ${i+1} of ${Q.length}`; $("pbar").style.width=(100*i/Q.length)+"%";
+  $("qtext").textContent=q.question; $("opts").innerHTML=""; $("next").disabled=true; $("next").textContent=i===Q.length-1?"See results":"Next";
+  q.options.forEach((o,k)=>{
+    const b=document.createElement("button"); b.className="opt"; b.textContent=String.fromCharCode(65+k)+". "+o;
+    b.onclick=()=>{ A[i]=k; [...$("opts").children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); $("next").disabled=false; };
+    $("opts").appendChild(b);
+  });
+}
+$("next").onclick=()=>{ if(i<Q.length-1){i++;show();} else finish(); };
+
+function finish(){
+  $("quiz").classList.add("hide"); $("result").classList.remove("hide");
+  const right=Q.filter((q,k)=>A[k]===q.answer).length;
+  $("score").textContent=`Score: ${right} of ${Q.length}`; saveAttempt(right);
+  const t={};
+  Q.forEach((q,k)=>{const tp=q.topic||"General"; t[tp]=t[tp]||{w:0,n:0}; t[tp].n++; if(A[k]!==q.answer)t[tp].w++;});
+  const weak=Object.entries(t).filter(([,v])=>v.w>0).sort((a,b)=>b[1].w/b[1].n-a[1].w/a[1].n||b[1].w-a[1].w);
+  $("rec").innerHTML=weak.length?"":"<p>No weak topics. Every answer was correct.</p>";
+  weak.forEach(([tp,v])=>{
+    const pct=Math.round(100*v.w/v.n), d=document.createElement("div"); d.style.margin="10px 0";
+    const src=Q.filter((q,k)=>(q.topic||"General")===tp&&A[k]!==q.answer).map(q=>q.source).filter(Boolean)[0]||"";
+    d.innerHTML=`<b>${esc(tp)}</b>: ${v.w} of ${v.n} wrong (${pct}%)<div class="bar"><i style="width:${pct}%"></i></div>${src?`<small>Revisit this part: "${esc(src)}"</small>`:""}`;
+    $("rec").appendChild(d);
+  });
+  $("review").innerHTML="";
+  Q.forEach((q,k)=>{
+    const ok=A[k]===q.answer, d=document.createElement("div"); d.className=ok?"right":"wrong";
+    d.innerHTML=`<b>${k+1}. ${esc(q.question)}</b><br>Your answer: ${esc(q.options[A[k]])}${ok?"":`<br>Correct: ${esc(q.options[q.answer])}`}`;
+    $("review").appendChild(d);
+  });
+}
+
+$("dl").onclick=()=>{
+  const q=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
+  const rows=[["question","option_A","option_B","option_C","option_D","correct","topic","source","valid_yes_no","distractors_plausible_yes_no"]];
+  Q.forEach(x=>rows.push([x.question,...x.options,"ABCD"[x.answer],x.topic,x.source,"",""]));
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([rows.map(r=>r.map(q).join(",")).join("\n")],{type:"text/csv"})); a.download="questions_for_review.csv"; a.click();
+};
+$("again").onclick=()=>{ $("result").classList.add("hide"); $("setup").classList.remove("hide"); };
+</script>
+</body>
+</html>
